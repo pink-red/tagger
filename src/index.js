@@ -1,13 +1,13 @@
-import React, { useEffect } from 'react'
-import ReactDOM from 'react-dom'
-import { program } from 'raj-react'
-import { union } from 'tagmeme'
-import _ from 'underscore'
-import JSZip from 'jszip'
-import { saveAs } from 'file-saver';
+import React, { useEffect } from "react"
+import ReactDOM from "react-dom"
+import { program } from "raj-react"
+import { union } from "tagmeme"
+import _ from "underscore"
+import JSZip from "jszip"
+import { saveAs } from "file-saver";
 import { AutoTokenizer } from "@xenova/transformers"
 
-import './index.css'
+import "./index.css"
 
 
 async function loadTokenizer(dispatch) {
@@ -232,7 +232,7 @@ const Program = program(React.Component, () => ({
 
     return (
         <div className="container">
-            <div className='file_input_row'>
+            <div className="file-input-row">
                 <input
                     type="file"
                     multiple
@@ -240,34 +240,41 @@ const Program = program(React.Component, () => ({
                         filesToTaggedImages(Array.from(e.target.files))
                             .then((files) => dispatch(Msg.UploadFiles(files)))
                     }} />
+                {
+                    (allFiles.length > 0) && <>
+                        <input
+                            type="text"
+                            id="search-input"
+                            placeholder="Search..."
+                            onKeyUp={e => {
+                                if (e.key === "Enter") {
+                                    dispatch(Msg.Search(e.target.value))
+                                }
+                            }}/>
+                        <button className="button" type="button" onClick={() => downloadTagsZip(allFiles, state.ignoredTags)}>Download Tags</button>
+                    </>
+                }
             </div>
             {
                 (allFiles.length > 0) && <div>
-                    <input
-                        type="text"
-                        id='search_input'
-                        placeholder="Search..."
-                        onKeyUp={e => {
-                            if (e.key === "Enter") {
-                                dispatch(Msg.Search(e.target.value))
-                            }
-                        }}/>
                     {
                         (filteredFiles.length === 0)
                         ? <div> Nothing found. </div>
                         : <>
-                            <div className='nav_buttons'>
-                                <button className="button" type="button" onClick={() => dispatch(Msg.Prev())}>Prev</button>
-                                <button className="button" type="button" onClick={() => dispatch(Msg.Next())}>Next</button>
-                                <button className="button download-tags-button" type="button" onClick={() => downloadTagsZip(allFiles, state.ignoredTags)}>Download Tags</button>
-                            </div>
                             <div className="row">
                                 <div className="left-column">
-                                    <div className="file-info">
-                                        [{position + 1} / {filteredFiles.length}] {filteredFiles[position].image.name}
+                                    <div className="nav-buttons">
+                                        <button className="button" type="button" onClick={() => dispatch(Msg.Prev())}>Prev</button>
+                                        <div className="files-position">
+                                            {position + 1} / {filteredFiles.length}
+                                        </div>
+                                        <button className="button" type="button" onClick={() => dispatch(Msg.Next())}>Next</button>
                                     </div>
-                                    <div className='img-box'>
+                                    <div className="img-box">
                                         <FileImg file={filteredFiles[position].image}/>
+                                    </div>
+                                    <div className="file-name">
+                                        {filteredFiles[position].image.name}
                                     </div>
                                 </div>
                                 <div className="right-column">
@@ -287,13 +294,13 @@ const Program = program(React.Component, () => ({
                                     }
                                     <div className="tags-list"> {
                                         sorted(_.difference(filteredFiles[position].tags, state.ignoredTags)).map((tag) => {
-                                            return <div className='tag'>
+                                            return <div className="tag">
                                                 <a className="wiki-link" href={danbooruWikiLinkForTag(tag)} target="_blank" rel="noreferrer">?</a>
-                                                <div className='tag-info'>
+                                                <div className="tag-info">
                                                     <span className="tag-text">{tag}</span>
                                                     <span className="tag-count">{tagCounts[tag]}</span>
                                                 </div>
-                                                <div className='tag-buttons'>
+                                                <div className="tag-buttons">
                                                     <button
                                                         className="delete-tag-button"
                                                         type="button"
@@ -352,4 +359,4 @@ const Program = program(React.Component, () => ({
 }))
 
 
-ReactDOM.render(<Program />, document.getElementById('app'))
+ReactDOM.render(<Program />, document.getElementById("app"))
