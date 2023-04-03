@@ -232,7 +232,7 @@ const Program = program(React.Component, () => ({
 
     return (
         <div className="container">
-            <div>
+            <div className='file_input_row'>
                 <input
                     type="file"
                     multiple
@@ -245,6 +245,7 @@ const Program = program(React.Component, () => ({
                 (allFiles.length > 0) && <div>
                     <input
                         type="text"
+                        id='search_input'
                         placeholder="Search..."
                         onKeyUp={e => {
                             if (e.key === "Enter") {
@@ -255,7 +256,7 @@ const Program = program(React.Component, () => ({
                         (filteredFiles.length === 0)
                         ? <div> Nothing found. </div>
                         : <>
-                            <div>
+                            <div className='nav_buttons'>
                                 <button className="button" type="button" onClick={() => dispatch(Msg.Prev())}>Prev</button>
                                 <button className="button" type="button" onClick={() => dispatch(Msg.Next())}>Next</button>
                                 <button className="button download-tags-button" type="button" onClick={() => downloadTagsZip(allFiles, state.ignoredTags)}>Download Tags</button>
@@ -265,7 +266,7 @@ const Program = program(React.Component, () => ({
                                     <div className="file-info">
                                         [{position + 1} / {filteredFiles.length}] {filteredFiles[position].image.name}
                                     </div>
-                                    <div>
+                                    <div className='img-box'>
                                         <FileImg file={filteredFiles[position].image}/>
                                     </div>
                                 </div>
@@ -286,31 +287,35 @@ const Program = program(React.Component, () => ({
                                     }
                                     <div className="tags-list"> {
                                         sorted(_.difference(filteredFiles[position].tags, state.ignoredTags)).map((tag) => {
-                                            return <div>
-                                                <a className="wiki-link" href={danbooruWikiLinkForTag(tag)}>?</a>
-                                                <span className="tag-text">{tag}</span>
-                                                <span className="tag-count">{tagCounts[tag]}</span>
-                                                <button
-                                                    className="button delete-button"
-                                                    type="button"
-                                                    onClick={() => dispatch(Msg.DeleteTag(tag))}
-                                                >
-                                                    x
-                                                </button>
-                                                <button
-                                                    className="button delete-button"
-                                                    type="button"
-                                                    onClick={() => dispatch(Msg.AddIgnoredTag(tag))}
-                                                >
-                                                    🛑
-                                                </button>
+                                            return <div className='tag'>
+                                                <a className="wiki-link" href={danbooruWikiLinkForTag(tag)} target="_blank" rel="noreferrer">?</a>
+                                                <div className='tag-info'>
+                                                    <span className="tag-text">{tag}</span>
+                                                    <span className="tag-count">{tagCounts[tag]}</span>
+                                                </div>
+                                                <div className='tag-buttons'>
+                                                    <button
+                                                        className="delete-tag-button"
+                                                        type="button"
+                                                        onClick={() => dispatch(Msg.DeleteTag(tag))}
+                                                    >
+                                                        x
+                                                    </button>
+                                                    <button
+                                                        className="add-global-button"
+                                                        type="button"
+                                                        onClick={() => dispatch(Msg.AddIgnoredTag(tag))}
+                                                    >
+                                                        _
+                                                    </button>
+                                                </div>
                                             </div>
                                         })
                                     } </div>
                                 </div>
                             </div>
                             <div>
-                                <h3>Globally ignored tags</h3>
+                                <span>Tags Blacklist</span>
                                     <input
                                         type="text"
                                         className="tag-input"
