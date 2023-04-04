@@ -134,19 +134,7 @@ function filterFiles(searchTags, files) {
 }
 
 
-const Program = program(React.Component, () => ({
-  init: [
-    {
-        allFiles: [],
-        filteredFiles: [],
-        position: 0,
-        tagCounts: {},
-        tokenizer: undefined,
-        ignoredTags: [],
-    },
-    loadTokenizer,
-  ],
-  update (msg, state) {
+function update (msg, state) {
     return Msg.match(msg, {
         SetTokenizer (tokenizer) {
             return [{...state, tokenizer: tokenizer}]
@@ -226,47 +214,175 @@ const Program = program(React.Component, () => ({
             return [{...state, filteredFiles: filterFiles(searchTags, state.allFiles), position: 0}]
         }
     })
-  },
-  view (state, dispatch) {
-    let {allFiles, filteredFiles, position, tagCounts, tokenizer} = state;
+}
+
+
+function viewImageViewer(filteredFiles, position, dispatch) {
+    return <div className="column">
+        <div className="nav-buttons">
+            <button className="button" type="button" onClick={() => dispatch(Msg.Prev())}>Prev</button>
+            <div className="files-position">
+                [{position + 1} / {filteredFiles.length}] {filteredFiles[position].image.name}
+            </div>
+            <button className="button" type="button" onClick={() => dispatch(Msg.Next())}>Next</button>
+        </div>
+        <div className="img-box">
+            <FileImg file={filteredFiles[position].image}/>
+        </div>
+    </div>
+}
+
+
+function viewTagEditor(image, ignoredTags, tagCounts, dispatch) {
+    return <div className="column right-column">
+        <input
+            type="text"
+            className="tag-input"
+            placeholder="New tag..."
+            onKeyUp={e => {
+                if (e.key === "Enter") {
+                    dispatch(Msg.AddTag(e.target.value))
+                    e.target.value = ""
+                }
+            }}/>
+        {
+            // TODO
+            // <span>Tokens: {tokenizer(image.tags.join(", "))["input_ids"].size} / 75</span>
+        }
+        <div className="tags-list"> {
+            sorted(_.difference(image.tags, ignoredTags)).map((tag) => {
+                return <div className="tag">
+                    <a className="wiki-link" href={danbooruWikiLinkForTag(tag)} target="_blank" rel="noreferrer">?</a>
+                    <div className="tag-info">
+                        <span className="tag-text">{tag}</span>
+                        <span className="tag-count">{tagCounts[tag]}</span>
+                    </div>
+                    <div className="tag-buttons">
+                        <button
+                            className="tag-button delete-tag-button"
+                            type="button"
+                            onClick={() => dispatch(Msg.DeleteTag(tag))}
+                        >
+                            ×
+                        </button>
+                        <button
+                            className="tag-button add-global-button"
+                            type="button"
+                            onClick={() => dispatch(Msg.AddIgnoredTag(tag))}
+                        >
+                            &nbsp;
+                        </button>
+                    </div>
+                </div>
+            })
+        } </div>
+    </div>
+}
+
+
+function viewTagsBlacklistEditor(ignoredTags, dispatch) {
+    return <div>
+        <span>Tags blacklist</span>
+            <input
+                type="text"
+                className="tag-input"
+                placeholder="New tag..."
+                onKeyUp={e => {
+                    if (e.key === "Enter") {
+                        dispatch(Msg.AddIgnoredTag(e.target.value))
+                        e.target.value = ""
+                    }
+                }}/>
+            <div className="tags-list"> {
+                sorted(ignoredTags).map((tag) => {
+                    return <div className="tag">
+                        <a className="wiki-link" href={danbooruWikiLinkForTag(tag)}>?</a>
+                        <span className="tag-text">{tag}</span>
+                        <button
+                            className="tag-button delete-tag-button"
+                            type="button"
+                            onClick={() => dispatch(Msg.DeleteIgnoredTag(tag))}
+                        >
+                            ×
+                        </button>
+                    </div>
+                })
+            } </div>
+    </div>
+}
+
+
+function viewEditor(state, dispatch) {
+    let { filteredFiles, position, tagCounts, ignoredTags } = state
+
+    return <>
+        <div className="row">
+            { viewImageViewer(filteredFiles, position, dispatch) }
+            { viewTagEditor(filteredFiles[position], ignoredTags, tagCounts, dispatch) }
+        </div>
+        { viewTagsBlacklistEditor(ignoredTags, dispatch) }
+    </>
+}
+
+
+function viewUploadFilesButton(dispatch) {
+    return <>
+        <input
+            id="file-input"
+            type="file"
+            style={{display: "none"}}
+            multiple
+            onChange={(e) => {
+                filesToTaggedImages(Array.from(e.target.files))
+                    .then((files) => dispatch(Msg.UploadFiles(files)))
+            }} />
+        <button
+            className="button"
+            type="button"
+            onClick={() => document.getElementById("file-input").click()}
+        >
+            Upload files
+        </button>
+    </>
+}
+
+
+function viewSearchField(dispatch) {
+    return <input
+        type="text"
+        id="search-input"
+        placeholder="Search..."
+        onKeyUp={e => {
+            if (e.key === "Enter") {
+                dispatch(Msg.Search(e.target.value))
+            }
+        }
+    }/>
+}
+
+
+function viewDownloadTagsButton(allFiles, ignoredTags) {
+    return <button
+            className="button"
+            type="button"
+            onClick={() => downloadTagsZip(allFiles, ignoredTags)}
+        >
+            Download tags
+    </button>
+}
+
+
+function view (state, dispatch) {
+    let {allFiles, filteredFiles, ignoredTags} = state;
 
     return (
         <div className="container">
             <div className="file-input-row">
-                <input
-                    id="file-input"
-                    type="file"
-                    style={{display: "none"}}
-                    multiple
-                    onChange={(e) => {
-                        filesToTaggedImages(Array.from(e.target.files))
-                            .then((files) => dispatch(Msg.UploadFiles(files)))
-                    }} />
-                <button
-                    className="button"
-                    type="button"
-                    onClick={() => document.getElementById("file-input").click()}
-                >
-                    Upload files
-                </button>
+                { viewUploadFilesButton(dispatch) }
                 {
                     (allFiles.length > 0) && <>
-                        <input
-                            type="text"
-                            id="search-input"
-                            placeholder="Search..."
-                            onKeyUp={e => {
-                                if (e.key === "Enter") {
-                                    dispatch(Msg.Search(e.target.value))
-                                }
-                            }}/>
-                        <button
-                            className="button"
-                            type="button"
-                            onClick={() => downloadTagsZip(allFiles, state.ignoredTags)}
-                        >
-                            Download tags
-                        </button>
+                        { viewSearchField(dispatch) }
+                        { viewDownloadTagsButton(allFiles, ignoredTags) }
                     </>
                 }
             </div>
@@ -275,100 +391,30 @@ const Program = program(React.Component, () => ({
                     {
                         (filteredFiles.length === 0)
                         ? <div> Nothing found. </div>
-                        : <>
-                            <div className="row">
-                                <div className="column">
-                                    <div className="nav-buttons">
-                                        <button className="button" type="button" onClick={() => dispatch(Msg.Prev())}>Prev</button>
-                                        <div className="files-position">
-                                            [{position + 1} / {filteredFiles.length}] {filteredFiles[position].image.name}
-                                        </div>
-                                        <button className="button" type="button" onClick={() => dispatch(Msg.Next())}>Next</button>
-                                    </div>
-                                    <div className="img-box">
-                                        <FileImg file={filteredFiles[position].image}/>
-                                    </div>
-                                </div>
-                                <div className="column right-column">
-                                    <input
-                                        type="text"
-                                        className="tag-input"
-                                        placeholder="New tag..."
-                                        onKeyUp={e => {
-                                            if (e.key === "Enter") {
-                                                dispatch(Msg.AddTag(e.target.value))
-                                                e.target.value = ""
-                                            }
-                                        }}/>
-                                    {
-                                        // TODO
-                                        // <span>Tokens: {tokenizer(filteredFiles[position].tags.join(", "))["input_ids"].size} / 75</span>
-                                    }
-                                    <div className="tags-list"> {
-                                        sorted(_.difference(filteredFiles[position].tags, state.ignoredTags)).map((tag) => {
-                                            return <div className="tag">
-                                                <a className="wiki-link" href={danbooruWikiLinkForTag(tag)} target="_blank" rel="noreferrer">?</a>
-                                                <div className="tag-info">
-                                                    <span className="tag-text">{tag}</span>
-                                                    <span className="tag-count">{tagCounts[tag]}</span>
-                                                </div>
-                                                <div className="tag-buttons">
-                                                    <button
-                                                        className="tag-button delete-tag-button"
-                                                        type="button"
-                                                        onClick={() => dispatch(Msg.DeleteTag(tag))}
-                                                    >
-                                                        ×
-                                                    </button>
-                                                    <button
-                                                        className="tag-button add-global-button"
-                                                        type="button"
-                                                        onClick={() => dispatch(Msg.AddIgnoredTag(tag))}
-                                                    >
-                                                        _
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        })
-                                    } </div>
-                                </div>
-                            </div>
-                            <div>
-                                <span>Tags blacklist</span>
-                                    <input
-                                        type="text"
-                                        className="tag-input"
-                                        placeholder="New tag..."
-                                        onKeyUp={e => {
-                                            if (e.key === "Enter") {
-                                                dispatch(Msg.AddIgnoredTag(e.target.value))
-                                                e.target.value = ""
-                                            }
-                                        }}/>
-                                    <div className="tags-list"> {
-                                        sorted(state.ignoredTags).map((tag) => {
-                                            return <div className="tag">
-                                                <a className="wiki-link" href={danbooruWikiLinkForTag(tag)}>?</a>
-                                                <span className="tag-text">{tag}</span>
-                                                <button
-                                                    className="tag-button delete-tag-button"
-                                                    type="button"
-                                                    onClick={() => dispatch(Msg.DeleteIgnoredTag(tag))}
-                                                >
-                                                    ×
-                                                </button>
-                                            </div>
-                                        })
-                                    } </div>
-                            </div>
-                        </>
+                        : viewEditor(state, dispatch)
                     }
                 </>
             }
         </div>
     )
-  }
+}
+
+
+const Program = program(React.Component, () => ({
+  init: [
+    {
+        allFiles: [],
+        filteredFiles: [],
+        position: 0,
+        tagCounts: {},
+        tokenizer: undefined,
+        ignoredTags: [],
+    },
+    loadTokenizer,
+  ],
+  update,
+  view,
 }))
 
 
-ReactDOM.render(<Program />, document.getElementById("app"))
+ReactDOM.render(<Program/>, document.getElementById("app"))
