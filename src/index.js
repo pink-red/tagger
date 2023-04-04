@@ -122,7 +122,29 @@ function danbooruWikiLinkForTag(tag) {
 }
 
 
-function filterFiles(searchTags, files) {
+function parseSearchTags(query) {
+    query = query.trim()
+
+    let searchTags = query.split(", ").map(x => x.trim())
+    searchTags = _.filter(searchTags, t => t.length > 0)
+
+    let positive = []
+    let negative = []
+    for (const tag of searchTags) {
+        if (tag.startsWith("-")) {
+            negative.push(tag.substring(1))
+        } else {
+            positive.push(tag)
+        }
+    }
+
+    return {positive: positive, negative: negative}
+}
+
+
+function filterFiles(query, files) {
+    let searchTags = parseSearchTags(query)
+
     if (searchTags.positive.length + searchTags.negative.length > 0) {
         return _.filter(files, f => {
             return searchTags.positive.every(t => f.tags.includes(t))
@@ -198,20 +220,7 @@ function update (msg, state) {
             return [state]
         },
         Search (query) {
-            query = query.trim()
-            let searchTags = query.split(", ").map(x => x.trim())
-            searchTags = _.filter(searchTags, t => t.length > 0)
-            let positive = []
-            let negative = []
-            for (const tag of searchTags) {
-                if (tag.startsWith("-")) {
-                    negative.push(tag.substring(1))
-                } else {
-                    positive.push(tag)
-                }
-            }
-            searchTags = {positive: positive, negative: negative}
-            return [{...state, filteredFiles: filterFiles(searchTags, state.allFiles), position: 0}]
+            return [{...state, filteredFiles: filterFiles(query, state.allFiles), position: 0}]
         }
     })
 }
