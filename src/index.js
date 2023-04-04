@@ -234,12 +234,21 @@ const Program = program(React.Component, () => ({
         <div className="container">
             <div className="file-input-row">
                 <input
+                    id="file-input"
                     type="file"
+                    style={{display: "none"}}
                     multiple
                     onChange={(e) => {
                         filesToTaggedImages(Array.from(e.target.files))
                             .then((files) => dispatch(Msg.UploadFiles(files)))
                     }} />
+                <button
+                    className="button"
+                    type="button"
+                    onClick={() => document.getElementById("file-input").click()}
+                >
+                    Upload files
+                </button>
                 {
                     (allFiles.length > 0) && <>
                         <input
@@ -251,33 +260,36 @@ const Program = program(React.Component, () => ({
                                     dispatch(Msg.Search(e.target.value))
                                 }
                             }}/>
-                        <button className="button" type="button" onClick={() => downloadTagsZip(allFiles, state.ignoredTags)}>Download Tags</button>
+                        <button
+                            className="button"
+                            type="button"
+                            onClick={() => downloadTagsZip(allFiles, state.ignoredTags)}
+                        >
+                            Download tags
+                        </button>
                     </>
                 }
             </div>
             {
-                (allFiles.length > 0) && <div>
+                (allFiles.length > 0) && <>
                     {
                         (filteredFiles.length === 0)
                         ? <div> Nothing found. </div>
                         : <>
                             <div className="row">
-                                <div className="left-column">
+                                <div className="column">
                                     <div className="nav-buttons">
                                         <button className="button" type="button" onClick={() => dispatch(Msg.Prev())}>Prev</button>
                                         <div className="files-position">
-                                            {position + 1} / {filteredFiles.length}
+                                            [{position + 1} / {filteredFiles.length}] {filteredFiles[position].image.name}
                                         </div>
                                         <button className="button" type="button" onClick={() => dispatch(Msg.Next())}>Next</button>
                                     </div>
                                     <div className="img-box">
                                         <FileImg file={filteredFiles[position].image}/>
                                     </div>
-                                    <div className="file-name">
-                                        {filteredFiles[position].image.name}
-                                    </div>
                                 </div>
-                                <div className="right-column">
+                                <div className="column right-column">
                                     <input
                                         type="text"
                                         className="tag-input"
@@ -302,14 +314,14 @@ const Program = program(React.Component, () => ({
                                                 </div>
                                                 <div className="tag-buttons">
                                                     <button
-                                                        className="delete-tag-button"
+                                                        className="tag-button delete-tag-button"
                                                         type="button"
                                                         onClick={() => dispatch(Msg.DeleteTag(tag))}
                                                     >
-                                                        x
+                                                        ×
                                                     </button>
                                                     <button
-                                                        className="add-global-button"
+                                                        className="tag-button add-global-button"
                                                         type="button"
                                                         onClick={() => dispatch(Msg.AddIgnoredTag(tag))}
                                                     >
@@ -322,7 +334,7 @@ const Program = program(React.Component, () => ({
                                 </div>
                             </div>
                             <div>
-                                <span>Tags Blacklist</span>
+                                <span>Tags blacklist</span>
                                     <input
                                         type="text"
                                         className="tag-input"
@@ -333,17 +345,17 @@ const Program = program(React.Component, () => ({
                                                 e.target.value = ""
                                             }
                                         }}/>
-                                    <div> {
+                                    <div className="tags-list"> {
                                         sorted(state.ignoredTags).map((tag) => {
-                                            return <div>
+                                            return <div className="tag">
                                                 <a className="wiki-link" href={danbooruWikiLinkForTag(tag)}>?</a>
                                                 <span className="tag-text">{tag}</span>
                                                 <button
-                                                    className="button delete-button"
+                                                    className="tag-button delete-tag-button"
                                                     type="button"
                                                     onClick={() => dispatch(Msg.DeleteIgnoredTag(tag))}
                                                 >
-                                                    ↩️
+                                                    ×
                                                 </button>
                                             </div>
                                         })
@@ -351,7 +363,7 @@ const Program = program(React.Component, () => ({
                             </div>
                         </>
                     }
-                </div>
+                </>
             }
         </div>
     )
