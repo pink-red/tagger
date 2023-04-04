@@ -1,4 +1,4 @@
-import React, { useEffect } from "react"
+import React, { useEffect, useCallback } from "react"
 import ReactDOM from "react-dom"
 import { program } from "raj-react"
 import { union } from "tagmeme"
@@ -34,6 +34,30 @@ function FileImg({file}) {
 }
 
 
+function EditorShortcuts({dispatch}) {
+    const handleKeyDown = useCallback(e => {
+        if (e.target.tagName === "INPUT") {
+            return
+        }
+
+        if (isFinite(e.key)) {  // is digit?
+            dispatch(Msg.ApplyTagScript(document.getElementById(`tag-script-input-${e.key}`).value))
+        } else if (e.key === "a" || e.key === "ArrowLeft") {
+            dispatch(Msg.Prev())
+        } else if (e.key === "d" || e.key === "ArrowRight") {
+            dispatch(Msg.Next())
+        }
+    }, [dispatch])
+
+    useEffect(() => {
+        document.addEventListener("keydown", handleKeyDown)
+        return () => document.removeEventListener("keydown", handleKeyDown)
+    }, [handleKeyDown])
+
+    return <></>
+}
+
+
 const Msg = union([
     "SetTokenizer",
     "UploadFiles",
@@ -44,6 +68,7 @@ const Msg = union([
     "AddIgnoredTag",
     "DeleteIgnoredTag",
     "Search",
+    "ApplyTagScript",
 ])
 
 
@@ -125,7 +150,7 @@ function danbooruWikiLinkForTag(tag) {
 function parseSearchTags(query) {
     query = query.trim()
 
-    let searchTags = query.split(", ").map(x => x.trim())
+    let searchTags = query.split(",").map(x => x.trim())
     searchTags = _.filter(searchTags, t => t.length > 0)
 
     let positive = []
@@ -153,6 +178,36 @@ function filterFiles(query, files) {
     } else {
         return files
     }
+}
+
+
+function addTag(state, tag) {
+    let file = state.filteredFiles[state.position]
+
+    file.tags.push(tag)
+    let uniqueTags = _.uniq(file.tags)
+    if (file.tags.length !== uniqueTags.length) {
+        file.tags = uniqueTags
+    } else {
+        state.tagCounts[tag] = state.tagCounts[tag] || 0
+        state.tagCounts[tag] += 1
+    }
+
+    return state
+}
+
+
+function deleteTag(state, tag) {
+    let file = state.filteredFiles[state.position]
+
+    let newTags = _.without(file.tags, tag)
+    if (file.tags.length !== newTags.length) {
+        file.tags = newTags
+        state.tagCounts[tag] = state.tagCounts[tag] || 0
+        state.tagCounts[tag] -= 1
+    }
+
+    return state
 }
 
 
@@ -184,24 +239,23 @@ function update (msg, state) {
             if (tag.length === 0) {
                 return [state]
             } else {
-                let file = state.filteredFiles[state.position]
-                file.tags.push(tag)
-                let uniqueTags = _.uniq(file.tags)
-                if (file.tags.length !== uniqueTags.length) {
-                    file.tags = _.uniq(file.tags)
-                } else {
-                    state.tagCounts[tag] = state.tagCounts[tag] || 0
-                    state.tagCounts[tag] += 1
-                }
-
+                state = addTag(state, tag)
                 return [state]
             }
         },
         DeleteTag (tag) {
-            let file = state.filteredFiles[state.position]
-            file.tags = _.without(file.tags, tag)
+            state = deleteTag(state, tag)
+            return [state]
+        },
+        ApplyTagScript (tagScript) {
+            let { positive, negative } = parseSearchTags(tagScript)
 
-            state.tagCounts[tag] -= 1
+            for (const t of positive) {
+                state = addTag(state, t)
+            }
+            for (const t of negative) {
+                state = deleteTag(state, t)
+            }
 
             return [state]
         },
@@ -253,14 +307,15 @@ function viewTagEditor(image, ignoredTags, tagCounts, dispatch) {
                     dispatch(Msg.AddTag(e.target.value))
                     e.target.value = ""
                 }
-            }}/>
+            }}
+        />
         {
             // TODO
             // <span>Tokens: {tokenizer(image.tags.join(", "))["input_ids"].size} / 75</span>
         }
         <div className="tags-list"> {
             sorted(_.difference(image.tags, ignoredTags)).map((tag) => {
-                return <div className="tag">
+                return <div className="tag" key={tag}>
                     <a className="wiki-link" href={danbooruWikiLinkForTag(tag)} target="_blank" rel="noreferrer">?</a>
                     <div className="tag-info">
                         <span className="tag-text">{tag}</span>
@@ -289,7 +344,7 @@ function viewTagEditor(image, ignoredTags, tagCounts, dispatch) {
 }
 
 
-function viewTagsBlacklistEditor(ignoredTags, dispatch) {
+function viewTagsBlacklistEditor(ignoredTags, tagCounts, dispatch) {
     return <div>
         <span>Tags blacklist</span>
             <input
@@ -304,9 +359,10 @@ function viewTagsBlacklistEditor(ignoredTags, dispatch) {
                 }}/>
             <div className="tags-list"> {
                 sorted(ignoredTags).map((tag) => {
-                    return <div className="tag">
+                    return <div className="tag" key={tag}>
                         <a className="wiki-link" href={danbooruWikiLinkForTag(tag)}>?</a>
                         <span className="tag-text">{tag}</span>
+                        <span className="tag-count">{tagCounts[tag]}</span>
                         <button
                             className="tag-button delete-tag-button"
                             type="button"
@@ -321,15 +377,32 @@ function viewTagsBlacklistEditor(ignoredTags, dispatch) {
 }
 
 
+function viewTagScript(n) {
+    return <div className="tag-script-box" key={n}>
+        <label htmlFor={`tag-script-input-${n}`}> { n } </label>
+        <input
+            type="text"
+            id={`tag-script-input-${n}`}
+            className="tag-input"
+            placeholder="Tag script..."
+        />
+    </div>
+}
+
+
 function viewEditor(state, dispatch) {
     let { filteredFiles, position, tagCounts, ignoredTags } = state
 
     return <>
         <div className="row">
+            <div className="column">
+                { _.range(1, 9+1).map(viewTagScript) }
+                { viewTagScript(0) }
+            </div>
             { viewImageViewer(filteredFiles, position, dispatch) }
             { viewTagEditor(filteredFiles[position], ignoredTags, tagCounts, dispatch) }
         </div>
-        { viewTagsBlacklistEditor(ignoredTags, dispatch) }
+        { viewTagsBlacklistEditor(ignoredTags, tagCounts, dispatch) }
     </>
 }
 
@@ -385,7 +458,7 @@ function view (state, dispatch) {
     let {allFiles, filteredFiles, ignoredTags} = state;
 
     return (
-        <div className="container">
+        <div className="container" tabIndex="0">
             <div className="file-input-row">
                 { viewUploadFilesButton(dispatch) }
                 {
@@ -400,7 +473,11 @@ function view (state, dispatch) {
                     {
                         (filteredFiles.length === 0)
                         ? <div> Nothing found. </div>
-                        : viewEditor(state, dispatch)
+                        : <>
+                            { viewEditor(state, dispatch) }
+                            {/* only enable shortcuts when an image is being shown */}
+                            <EditorShortcuts dispatch={dispatch}/>
+                        </>
                     }
                 </>
             }

@@ -63,7 +63,6 @@ body {
 }
 
 .tag-input {
-/*  width: 100%;*/
   display: flex;
   background-color: #fff;
   border: 1px solid #ccc;
@@ -209,4 +208,10 @@ input[type=text] {
 
 .tag:hover > .wiki-link {
   display: inline-block;
+}
+
+.tag-script-box {
+  display: flex;
+  flex-direction: row;
+  gap: 1em;
 }
