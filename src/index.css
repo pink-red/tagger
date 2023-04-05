@@ -215,3 +215,21 @@ input[type=text] {
   flex-direction: row;
   gap: 1em;
 }
+
+.gallery {
+  display: grid;
+  gap: 1em;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+}
+
+.thumbnail-div {
+  display: flex;
+  height: 200px;
+  width: 200px;
+}
+
+.thumbnail {
+  max-width: 100%;
+  max-height: 100%;
+  margin: auto;
+}

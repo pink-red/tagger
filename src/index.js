@@ -19,7 +19,7 @@ async function loadTokenizer(dispatch) {
 }
 
 
-function FileImg({file}) {
+function FileImg({file, className}) {
     let url = URL.createObjectURL(file);
 
     // free memory when component is unmounted
@@ -30,7 +30,7 @@ function FileImg({file}) {
         [url],
     )
 
-    return <img className="image" src={url} alt=""/>
+    return <img className={className} src={url} alt=""/>
 }
 
 
@@ -290,7 +290,7 @@ function viewImageViewer(filteredFiles, position, dispatch) {
             <button className="button" type="button" onClick={() => dispatch(Msg.Next())}>Next</button>
         </div>
         <div className="img-box">
-            <FileImg file={filteredFiles[position].image}/>
+            <FileImg className="image" file={filteredFiles[position].image}/>
         </div>
     </div>
 }
@@ -403,6 +403,8 @@ function viewEditor(state, dispatch) {
             { viewTagEditor(filteredFiles[position], ignoredTags, tagCounts, dispatch) }
         </div>
         { viewTagsBlacklistEditor(ignoredTags, tagCounts, dispatch) }
+        {/* only enable shortcuts when the editor is being shown */}
+        <EditorShortcuts dispatch={dispatch}/>
     </>
 }
 
@@ -454,8 +456,23 @@ function viewDownloadTagsButton(allFiles, ignoredTags) {
 }
 
 
+function viewGallery(filteredFiles) {
+    return (
+        <div className="gallery">
+                {
+                    filteredFiles.map(file => (
+                        <div className="thumbnail-div">
+                            <FileImg className="thumbnail" file={file.image}/>
+                        </div>
+                    ))
+                }
+        </div>
+    )
+}
+
+
 function view (state, dispatch) {
-    let {allFiles, filteredFiles, ignoredTags} = state;
+    let {allFiles, filteredFiles, ignoredTags, mode} = state;
 
     return (
         <div className="container" tabIndex="0">
@@ -469,17 +486,17 @@ function view (state, dispatch) {
                 }
             </div>
             {
-                (allFiles.length > 0) && <>
-                    {
-                        (filteredFiles.length === 0)
-                        ? <div> Nothing found. </div>
-                        : <>
-                            { viewEditor(state, dispatch) }
-                            {/* only enable shortcuts when an image is being shown */}
-                            <EditorShortcuts dispatch={dispatch}/>
-                        </>
-                    }
-                </>
+                    (allFiles.length > 0) && <>
+                        {
+                            (filteredFiles.length === 0)
+                            ? <div> Nothing found. </div>
+                            : (
+                                                (mode === "image")
+                ? viewEditor(state, dispatch)
+                : viewGallery(filteredFiles)
+                )
+                        }
+                    </>
             }
         </div>
     )
@@ -493,8 +510,9 @@ const Program = program(React.Component, () => ({
         filteredFiles: [],
         position: 0,
         tagCounts: {},
-        tokenizer: undefined,
+        tokenizer: null,
         ignoredTags: [],
+        mode: "gallery",
     },
     loadTokenizer,
   ],
