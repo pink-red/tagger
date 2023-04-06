@@ -19,21 +19,6 @@ async function loadTokenizer(dispatch) {
 }
 
 
-function FileImg({file, className}) {
-    let url = URL.createObjectURL(file);
-
-    // free memory when component is unmounted
-    useEffect(
-        () => {
-            return () => URL.revokeObjectURL(url)
-        },
-        [url],
-    )
-
-    return <img className={className} src={url} alt=""/>
-}
-
-
 const Msg = union([
     "SetTokenizer",
     "UploadFiles",
@@ -102,10 +87,13 @@ async function filesToTaggedImages(files) {
                 allTagsWithRepeats.push(tag)
             }
 
+            let url = URL.createObjectURL(file)
+
             taggedImages.push(
                 {
                     image: file,
                     tags: tags,
+                    url: url,
                 }
             )
         }
@@ -278,7 +266,7 @@ function viewImageViewer(filteredFiles, position, dispatch) {
             <button className="button" type="button" onClick={() => dispatch(Msg.Next())}>Next</button>
         </div>
         <div className="img-box">
-            <FileImg className="image" file={filteredFiles[position].image}/>
+            <img className="image" src={filteredFiles[position].url}/>
         </div>
     </div>
 }
@@ -448,7 +436,7 @@ function viewEditor(state, dispatch) {
 }
 
 
-function viewUploadFilesButton(dispatch) {
+function viewUploadFilesButton(currentFiles, dispatch) {
     return <>
         <input
             id="file-input"
@@ -456,8 +444,9 @@ function viewUploadFilesButton(dispatch) {
             style={{display: "none"}}
             multiple
             onChange={(e) => {
+                currentFiles.forEach(URL.revokeObjectURL)
                 filesToTaggedImages(Array.from(e.target.files))
-                    .then((files) => dispatch(Msg.UploadFiles(files)))
+                    .then(files => dispatch(Msg.UploadFiles(files)))
             }} />
         <button
             className="button"
@@ -505,7 +494,7 @@ function viewGallery(filteredFiles, dispatch) {
                         key={file.image.name}
                         onClick={() => dispatch(Msg.SwitchToImage(i))}
                     >
-                        <FileImg className="thumbnail" file={file.image}/>
+                        <img className="thumbnail" src={file.url}/>
                     </div>
                 ))
             }
@@ -556,7 +545,7 @@ function view(state, dispatch) {
     return (
         <div className="container" tabIndex="0">
             <div className="file-input-row">
-                { viewUploadFilesButton(dispatch) }
+                { viewUploadFilesButton(allFiles, dispatch) }
                 {
                     (allFiles.length > 0) && <>
                         { viewSearchField(dispatch) }
