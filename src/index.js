@@ -34,30 +34,6 @@ function FileImg({file, className}) {
 }
 
 
-function EditorShortcuts({dispatch}) {
-    const handleKeyDown = useCallback(e => {
-        if (e.target.tagName === "INPUT") {
-            return
-        }
-
-        if (isFinite(e.key)) {  // is digit?
-            dispatch(Msg.ApplyTagScript(document.getElementById(`tag-script-input-${e.key}`).value))
-        } else if (e.key === "a" || e.key === "ArrowLeft") {
-            dispatch(Msg.Prev())
-        } else if (e.key === "d" || e.key === "ArrowRight") {
-            dispatch(Msg.Next())
-        }
-    }, [dispatch])
-
-    useEffect(() => {
-        document.addEventListener("keydown", handleKeyDown)
-        return () => document.removeEventListener("keydown", handleKeyDown)
-    }, [handleKeyDown])
-
-    return <></>
-}
-
-
 const Msg = union([
     "SetTokenizer",
     "UploadFiles",
@@ -69,6 +45,9 @@ const Msg = union([
     "DeleteIgnoredTag",
     "Search",
     "ApplyTagScript",
+    "SetMode",
+    "SwitchToImage",
+    "ToggleTagScripts",
 ])
 
 
@@ -275,13 +254,22 @@ function update (msg, state) {
         },
         Search (query) {
             return [{...state, filteredFiles: filterFiles(query, state.allFiles), position: 0}]
+        },
+        SetMode (mode) {
+            return [{...state, mode: mode}]
+        },
+        SwitchToImage (position) {
+            return [{...state, mode: "image", position: position}]
+        },
+        ToggleTagScripts () {
+            return [{...state, tagScriptsEnabled: !state.tagScriptsEnabled}]
         }
     })
 }
 
 
 function viewImageViewer(filteredFiles, position, dispatch) {
-    return <div className="column">
+    return <div className="image-column column">
         <div className="nav-buttons">
             <button className="button" type="button" onClick={() => dispatch(Msg.Prev())}>Prev</button>
             <div className="files-position">
@@ -377,6 +365,30 @@ function viewTagsBlacklistEditor(ignoredTags, tagCounts, dispatch) {
 }
 
 
+function TagScriptsShortcuts({dispatch}) {
+    useEffect(() => {
+        function handleKeyDown(e) {
+            if (e.target.tagName === "INPUT") {
+                return
+            }
+
+            if (/^[0-9]$/.test(e.key)) {
+                dispatch(
+                    Msg.ApplyTagScript(
+                        document.getElementById(`tag-script-input-${e.key}`).value
+                    )
+                )
+            }
+        }
+
+        document.addEventListener("keydown", handleKeyDown)
+        return () => document.removeEventListener("keydown", handleKeyDown)
+    })
+
+    return <></>
+}
+
+
 function viewTagScript(n) {
     return <div className="tag-script-box" key={n}>
         <label htmlFor={`tag-script-input-${n}`}> { n } </label>
@@ -390,15 +402,42 @@ function viewTagScript(n) {
 }
 
 
+function EditorShortcuts({dispatch}) {
+    useEffect(() => {
+        function handleKeyDown(e) {
+            if (e.target.tagName === "INPUT") {
+                return
+            }
+
+            if (e.key === "a" || e.key === "ArrowLeft") {
+                dispatch(Msg.Prev())
+            } else if (e.key === "d" || e.key === "ArrowRight") {
+                dispatch(Msg.Next())
+            }
+        }
+
+        document.addEventListener("keydown", handleKeyDown)
+        return () => document.removeEventListener("keydown", handleKeyDown)
+    })
+
+    return <></>
+}
+
+
 function viewEditor(state, dispatch) {
-    let { filteredFiles, position, tagCounts, ignoredTags } = state
+    let { filteredFiles, position, tagCounts, ignoredTags, tagScriptsEnabled } = state
 
     return <>
         <div className="row">
-            <div className="column">
-                { _.range(1, 9+1).map(viewTagScript) }
-                { viewTagScript(0) }
-            </div>
+            {
+                (tagScriptsEnabled) && (
+                    <div className="tag-script-column column">
+                        { _.range(1, 9+1).map(viewTagScript) }
+                        { viewTagScript(0) }
+                        <TagScriptsShortcuts dispatch={dispatch}/>
+                    </div>
+                )
+            }
             { viewImageViewer(filteredFiles, position, dispatch) }
             { viewTagEditor(filteredFiles[position], ignoredTags, tagCounts, dispatch) }
         </div>
@@ -456,23 +495,63 @@ function viewDownloadTagsButton(allFiles, ignoredTags) {
 }
 
 
-function viewGallery(filteredFiles) {
+function viewGallery(filteredFiles, dispatch) {
     return (
         <div className="gallery">
-                {
-                    filteredFiles.map(file => (
-                        <div className="thumbnail-div">
-                            <FileImg className="thumbnail" file={file.image}/>
-                        </div>
-                    ))
-                }
+            {
+                filteredFiles.map((file, i) => (
+                    <div
+                        className="thumbnail-div"
+                        key={file.image.name}
+                        onClick={() => dispatch(Msg.SwitchToImage(i))}
+                    >
+                        <FileImg className="thumbnail" file={file.image}/>
+                    </div>
+                ))
+            }
         </div>
     )
 }
 
 
-function view (state, dispatch) {
-    let {allFiles, filteredFiles, ignoredTags, mode} = state;
+function viewModeToggle(mode, dispatch) {
+    if (mode === "image") {
+        return <>
+            <button
+                className="button"
+                type="button"
+                onClick={() => dispatch(Msg.SetMode("gallery"))}
+            >
+                G
+            </button>
+        </>
+    } else {
+        return <>
+            <button
+                className="button"
+                type="button"
+                onClick={() => dispatch(Msg.SetMode("image"))}
+            >
+                I
+            </button>
+        </>
+    }
+}
+
+
+function viewTagScriptsToggle(tagScriptsEnabled, dispatch) {
+    return (
+        <input
+            type="checkbox"
+            checked={tagScriptsEnabled}
+            onChange={() => dispatch(Msg.ToggleTagScripts())}
+        />
+    )
+}
+
+
+function view(state, dispatch) {
+    let {allFiles, filteredFiles, ignoredTags, mode, tagScriptsEnabled} = state;
 
     return (
         <div className="container" tabIndex="0">
@@ -481,6 +560,8 @@ function view (state, dispatch) {
                 {
                     (allFiles.length > 0) && <>
                         { viewSearchField(dispatch) }
+                        { viewModeToggle(mode, dispatch) }
+                        { viewTagScriptsToggle(tagScriptsEnabled, dispatch) }
                         { viewDownloadTagsButton(allFiles, ignoredTags) }
                     </>
                 }
@@ -491,10 +572,10 @@ function view (state, dispatch) {
                             (filteredFiles.length === 0)
                             ? <div> Nothing found. </div>
                             : (
-                                                (mode === "image")
-                ? viewEditor(state, dispatch)
-                : viewGallery(filteredFiles)
-                )
+                                (mode === "image")
+                                ? viewEditor(state, dispatch)
+                                : viewGallery(filteredFiles, dispatch)
+                            )
                         }
                     </>
             }
@@ -512,7 +593,8 @@ const Program = program(React.Component, () => ({
         tagCounts: {},
         tokenizer: null,
         ignoredTags: [],
-        mode: "gallery",
+        mode: "image",
+        tagScriptsEnabled: false,
     },
     loadTokenizer,
   ],
