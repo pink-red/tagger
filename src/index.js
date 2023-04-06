@@ -444,7 +444,7 @@ function viewUploadFilesButton(currentFiles, dispatch) {
             style={{display: "none"}}
             multiple
             onChange={(e) => {
-                currentFiles.forEach(URL.revokeObjectURL)
+                currentFiles.forEach(f => URL.revokeObjectURL(f.url))
                 filesToTaggedImages(Array.from(e.target.files))
                     .then(files => dispatch(Msg.UploadFiles(files)))
             }} />
