@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback } from "react"
+import React, { useEffect } from "react"
 import ReactDOM from "react-dom"
 import { program } from "raj-react"
 import { union } from "tagmeme"
@@ -266,7 +266,7 @@ function viewImageViewer(filteredFiles, position, dispatch) {
             <button className="button" type="button" onClick={() => dispatch(Msg.Next())}>Next</button>
         </div>
         <div className="img-box">
-            <img className="image" src={filteredFiles[position].url}/>
+            <img className="image" src={filteredFiles[position].url} alt=""/>
         </div>
     </div>
 }
@@ -494,7 +494,7 @@ function viewGallery(filteredFiles, dispatch) {
                         key={file.image.name}
                         onClick={() => dispatch(Msg.SwitchToImage(i))}
                     >
-                        <img className="thumbnail" src={file.url}/>
+                        <img className="thumbnail" src={file.url} alt=""/>
                     </div>
                 ))
             }
