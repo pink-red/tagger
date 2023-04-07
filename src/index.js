@@ -428,6 +428,15 @@ function EditorShortcuts({ dispatch }) {
       if (e.target.tagName === "INPUT") {
         return
       }
+      if (
+        e.getModifierState("Alt") ||
+        e.getModifierState("Control") ||
+        e.getModifierState("Meta") ||
+        e.getModifierState("Shift") ||
+        e.getModifierState("OS")
+      ) {
+        return
+      }
 
       if (e.code === "KeyA" || e.code === "ArrowLeft") {
         dispatch(Msg.Prev())
