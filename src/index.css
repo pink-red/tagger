@@ -7,13 +7,14 @@ body {
   box-sizing: border-box;
 }
 
-.container, .row {
+.container,
+.row {
   height: 100%;
   box-sizing: border-box;
 }
 
 body {
-/*  padding: 20px;*/
+  /*  padding: 20px;*/
 }
 
 .container {
@@ -100,9 +101,9 @@ body {
   flex: 1;
   object-fit: contain;
 
-/*  margin: auto;*/
-/*  background: repeating-conic-gradient(#d0d0d0 0% 25%, transparent 0% 50%) 50% /*/
-/*    30px 30px;*/
+  /*  margin: auto;*/
+  /*  background: repeating-conic-gradient(#d0d0d0 0% 25%, transparent 0% 50%) 50% /*/
+  /*    30px 30px;*/
 }
 
 .file-input-row {
