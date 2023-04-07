@@ -619,7 +619,7 @@ const Program = program(React.Component, () => ({
       tagCounts: {},
       tokenizer: null,
       ignoredTags: [],
-      mode: "image",
+      mode: "gallery",
       tagScriptsEnabled: false,
     },
     loadTokenizer,
