@@ -294,7 +294,7 @@ function viewTagEditor(image, ignoredTags, tagCounts, dispatch) {
         className="tag-input"
         placeholder="New tag..."
         onKeyUp={(e) => {
-          if (e.key === "Enter") {
+          if (e.code === "Enter") {
             dispatch(Msg.AddTag(e.target.value))
             e.target.value = ""
           }
@@ -354,7 +354,7 @@ function viewTagsBlacklistEditor(ignoredTags, tagCounts, dispatch) {
         className="tag-input"
         placeholder="New tag..."
         onKeyUp={(e) => {
-          if (e.key === "Enter") {
+          if (e.code === "Enter") {
             dispatch(Msg.AddIgnoredTag(e.target.value))
             e.target.value = ""
           }
@@ -429,9 +429,9 @@ function EditorShortcuts({ dispatch }) {
         return
       }
 
-      if (e.key === "a" || e.key === "ArrowLeft") {
+      if (e.code === "KeyA" || e.code === "ArrowLeft") {
         dispatch(Msg.Prev())
-      } else if (e.key === "d" || e.key === "ArrowRight") {
+      } else if (e.code === "KeyD" || e.code === "ArrowRight") {
         dispatch(Msg.Next())
       }
     }
@@ -505,7 +505,7 @@ function viewSearchField(dispatch) {
       id="search-input"
       placeholder="Search..."
       onKeyUp={(e) => {
-        if (e.key === "Enter") {
+        if (e.code === "Enter") {
           dispatch(Msg.Search(e.target.value))
         }
       }}
