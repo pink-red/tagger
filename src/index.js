@@ -347,7 +347,7 @@ function viewTagEditor(image, ignoredTags, tagCounts, dispatch) {
 
 function viewTagsBlacklistEditor(ignoredTags, tagCounts, dispatch) {
   return (
-    <div>
+    <div className="column">
       <span>Tags blacklist</span>
       <input
         type="text"
@@ -464,10 +464,10 @@ function viewEditor(state, dispatch) {
           tagCounts,
           dispatch
         )}
+        {viewTagsBlacklistEditor(ignoredTags, tagCounts, dispatch)}
+        {/* only enable shortcuts when the editor is being shown */}
+        <EditorShortcuts dispatch={dispatch} />
       </div>
-      {viewTagsBlacklistEditor(ignoredTags, tagCounts, dispatch)}
-      {/* only enable shortcuts when the editor is being shown */}
-      <EditorShortcuts dispatch={dispatch} />
     </>
   )
 }
@@ -550,7 +550,7 @@ function viewModeToggle(mode, dispatch) {
           type="button"
           onClick={() => dispatch(Msg.SetMode("gallery"))}
         >
-          G
+          To gallery
         </button>
       </>
     )
@@ -562,7 +562,7 @@ function viewModeToggle(mode, dispatch) {
           type="button"
           onClick={() => dispatch(Msg.SetMode("image"))}
         >
-          I
+          Back to image
         </button>
       </>
     )
@@ -583,7 +583,7 @@ function view(state, dispatch) {
   let { allFiles, filteredFiles, ignoredTags, mode, tagScriptsEnabled } = state
 
   return (
-    <div className="container" tabIndex="0">
+    <div className="container">
       <div className="file-input-row">
         {viewUploadFilesButton(allFiles, dispatch)}
         {allFiles.length > 0 && (
