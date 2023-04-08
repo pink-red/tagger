@@ -302,6 +302,7 @@ function viewImageViewer(filteredFiles, position, dispatch) {
 function viewTagEditor(image, ignoredTags, tagCounts, dispatch) {
   return (
     <div className="column right-column">
+      <span className="column-name">Tags</span>
       <input
         type="text"
         className="tag-input"
@@ -361,7 +362,7 @@ function viewTagEditor(image, ignoredTags, tagCounts, dispatch) {
 function viewTagsBlacklistEditor(ignoredTags, tagCounts, dispatch) {
   return (
     <div className="column">
-      <span>Tags blacklist</span>
+      <span className="column-name">Tags blacklist</span>
       <input
         type="text"
         className="tag-input"
@@ -482,6 +483,7 @@ function viewEditor(state, dispatch) {
         {viewTagsBlacklistEditor(ignoredTags, tagCounts, dispatch)}
         {tagScriptsEnabled && (
           <div className="tag-script-column column">
+            <span className="column-name">Tag scripts</span>
             {_.range(1, 9 + 1).map(viewTagScript)}
             {viewTagScript(0)}
             <TagScriptsShortcuts dispatch={dispatch} />

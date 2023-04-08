@@ -45,6 +45,10 @@ body {
   gap: 1em;
 }
 
+.column-name {
+  font-weight: bold;
+}
+
 .right-column {
   width: 15em;
 }
@@ -85,6 +89,7 @@ body {
   text-overflow: ellipsis;
   overflow: hidden;
   white-space: nowrap;
+  font-weight: bold;
 }
 
 .img-box {
