@@ -459,13 +459,6 @@ function viewEditor(state, dispatch) {
   return (
     <>
       <div className="row">
-        {tagScriptsEnabled && (
-          <div className="tag-script-column column">
-            {_.range(1, 9 + 1).map(viewTagScript)}
-            {viewTagScript(0)}
-            <TagScriptsShortcuts dispatch={dispatch} />
-          </div>
-        )}
         {viewImageViewer(filteredFiles, position, dispatch)}
         {viewTagEditor(
           filteredFiles[position],
@@ -474,6 +467,13 @@ function viewEditor(state, dispatch) {
           dispatch
         )}
         {viewTagsBlacklistEditor(ignoredTags, tagCounts, dispatch)}
+        {tagScriptsEnabled && (
+          <div className="tag-script-column column">
+            {_.range(1, 9 + 1).map(viewTagScript)}
+            {viewTagScript(0)}
+            <TagScriptsShortcuts dispatch={dispatch} />
+          </div>
+        )}
         {/* only enable shortcuts when the editor is being shown */}
         <EditorShortcuts dispatch={dispatch} />
       </div>
