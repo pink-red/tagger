@@ -40,6 +40,10 @@ function sorted(arr, key = _.identity) {
   return _.sortBy(arr, key)
 }
 
+function escapeRegExp(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 function downloadTagsZip(images, ignoredTags) {
   let zip = new JSZip()
   for (const image of images) {
@@ -133,14 +137,24 @@ function parseSearchTags(query) {
   return { positive: positive, negative: negative }
 }
 
-function filterFiles(query, files) {
-  let searchTags = parseSearchTags(query)
+function tagsContainMatch(tags, pattern) {
+  let regex = new RegExp("^" + escapeRegExp(pattern).replaceAll("\\*", ".*") + "$")
+  for (const t of tags) {
+    if (t.match(regex)) {
+      return true
+    }
+  }
+  return false
+}
 
-  if (searchTags.positive.length + searchTags.negative.length > 0) {
+function filterFiles(query, files) {
+  let {positive, negative} = parseSearchTags(query)
+
+  if (positive.length + negative.length > 0) {
     return _.filter(files, (f) => {
       return (
-        searchTags.positive.every((t) => f.tags.includes(t)) &&
-        !searchTags.negative.some((t) => f.tags.includes(t))
+        positive.every((t) => tagsContainMatch(f.tags, t)) &&
+        !negative.some((t) => tagsContainMatch(f.tags, t))
       )
     })
   } else {
