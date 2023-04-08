@@ -36,7 +36,6 @@ body {
 .row {
   display: flex;
   gap: 1em;
-  flex-wrap: wrap;
   min-height: 0;
 }
 
