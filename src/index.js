@@ -30,6 +30,8 @@ const Msg = union([
   "SetMode",
   "SwitchToImage",
   "ToggleTagScripts",
+  "UpdateTagInputValue",
+  "UpdateSearchInputValue",
 ])
 
 function loopIndex(idx, arrayLength) {
@@ -199,10 +201,11 @@ function update(msg, state) {
       let { taggedImages, tagCounts } = files
       return [
         {
-          ...state,
+          ...makeInitialModel(),
+          tokenizer: state.tokenizer,
+          mode: state.mode,
           allFiles: taggedImages,
           filteredFiles: taggedImages,
-          position: 0,
           tagCounts: tagCounts,
         },
       ]
@@ -229,7 +232,7 @@ function update(msg, state) {
         return [state]
       } else {
         state = addTag(state, tag)
-        return [state]
+        return [{ ...state, tagInputValue: "" }]
       }
     },
     DeleteTag(tag) {
@@ -280,6 +283,12 @@ function update(msg, state) {
     ToggleTagScripts() {
       return [{ ...state, tagScriptsEnabled: !state.tagScriptsEnabled }]
     },
+    UpdateTagInputValue (value) {
+      return [{ ...state, tagInputValue: value }]
+    },
+    UpdateSearchInputValue (value) {
+      return [{ ...state, searchInputValue: value }]
+    },
   })
 }
 
@@ -313,7 +322,7 @@ function viewImageViewer(filteredFiles, position, dispatch) {
   )
 }
 
-function viewTagEditor(image, ignoredTags, tagCounts, dispatch) {
+function viewTagEditor(image, ignoredTags, tagCounts, tagInputValue, dispatch) {
   return (
     <div className="column right-column">
       <span className="column-name">Tags</span>
@@ -321,10 +330,11 @@ function viewTagEditor(image, ignoredTags, tagCounts, dispatch) {
         type="text"
         className="tag-input"
         placeholder="New tag..."
+        value={tagInputValue}
+        onChange={(e) => dispatch(Msg.UpdateTagInputValue(e.target.value))}
         onKeyUp={(e) => {
           if (e.code === "Enter") {
             dispatch(Msg.AddTag(e.target.value))
-            e.target.value = ""
           }
         }}
       />
@@ -481,7 +491,7 @@ function EditorShortcuts({ dispatch }) {
 }
 
 function viewEditor(state, dispatch) {
-  let { filteredFiles, position, tagCounts, ignoredTags, tagScriptsEnabled } =
+  let { filteredFiles, position, tagCounts, ignoredTags, tagScriptsEnabled, tagInputValue } =
     state
 
   return (
@@ -492,6 +502,7 @@ function viewEditor(state, dispatch) {
           filteredFiles[position],
           ignoredTags,
           tagCounts,
+          tagInputValue,
           dispatch
         )}
         {viewTagsBlacklistEditor(ignoredTags, tagCounts, dispatch)}
@@ -536,12 +547,14 @@ function viewUploadFilesButton(currentFiles, dispatch) {
   )
 }
 
-function viewSearchField(dispatch) {
+function viewSearchField(searchInputValue, dispatch) {
   return (
     <input
       type="text"
       id="search-input"
       placeholder="Search..."
+      value={searchInputValue}
+      onChange={(e) => dispatch(Msg.UpdateSearchInputValue(e.target.value))}
       onKeyUp={(e) => {
         if (e.code === "Enter") {
           dispatch(Msg.Search(e.target.value))
@@ -618,7 +631,7 @@ function viewTagScriptsToggle(tagScriptsEnabled, dispatch) {
 }
 
 function view(state, dispatch) {
-  let { allFiles, filteredFiles, ignoredTags, mode, tagScriptsEnabled } = state
+  let { allFiles, filteredFiles, ignoredTags, mode, tagScriptsEnabled, searchInputValue } = state
 
   return (
     <div className="container">
@@ -626,7 +639,7 @@ function view(state, dispatch) {
         {viewUploadFilesButton(allFiles, dispatch)}
         {allFiles.length > 0 && (
           <>
-            {viewSearchField(dispatch)}
+            {viewSearchField(searchInputValue, dispatch)}
             {viewModeToggle(mode, dispatch)}
             {viewTagScriptsToggle(tagScriptsEnabled, dispatch)}
             {viewDownloadTagsButton(allFiles, ignoredTags)}
@@ -648,20 +661,23 @@ function view(state, dispatch) {
   )
 }
 
+function makeInitialModel() {
+  return {
+    allFiles: [],
+    filteredFiles: [],
+    position: 0,
+    tagCounts: {},
+    tokenizer: null,
+    ignoredTags: [],
+    mode: "gallery",
+    tagScriptsEnabled: false,
+    tagInputValue: "",
+    searchInputValue: "",
+  }
+}
+
 const Program = program(React.Component, () => ({
-  init: [
-    {
-      allFiles: [],
-      filteredFiles: [],
-      position: 0,
-      tagCounts: {},
-      tokenizer: null,
-      ignoredTags: [],
-      mode: "gallery",
-      tagScriptsEnabled: false,
-    },
-    loadTokenizer,
-  ],
+  init: [makeInitialModel(), loadTokenizer],
   update,
   view,
 }))
