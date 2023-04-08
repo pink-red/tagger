@@ -246,12 +246,12 @@ input[type="text"] {
   display: grid;
   row-gap: 1em;
   column-gap: 1em;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
 }
 
 .thumbnail-div {
   display: flex;
-  height: 200px;
+  height: 230px;
   width: auto;
   border-radius: 0.3em;
   background-color: #ffffff;
