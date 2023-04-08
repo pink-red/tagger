@@ -204,8 +204,6 @@ input[type="text"] {
 
 .tag-info {
   order: 2;
-  display: flex;
-  flex-direction: row;
 }
 
 .wiki-link {
