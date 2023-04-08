@@ -45,6 +45,7 @@ function downloadTagsZip(images, ignoredTags) {
   for (const image of images) {
     let tags = sorted(image.tags)
     tags = _.difference(tags, ignoredTags)
+    tags = tags.map((t) => t.replaceAll("_", " "))
 
     zip.file(image.image.name + ".txt", tags.join(", "))
   }
@@ -73,7 +74,7 @@ async function filesToTaggedImages(files) {
           throw e
         }
       }
-      const tags = _.uniq(tagStr.trim().split(", "))
+      const tags = parse_tags_comma_separated(tagStr)
       for (const tag of tags) {
         allTagsWithRepeats.push(tag)
       }
@@ -98,14 +99,26 @@ async function filesToTaggedImages(files) {
 }
 
 function danbooruWikiLinkForTag(tag) {
-  return `https://danbooru.donmai.us/wiki_pages/${tag.replace(" ", "_")}`
+  return `https://danbooru.donmai.us/wiki_pages/${tag}`
+}
+
+function parse_tags_comma_separated(tagsStr) {
+  let tags = tagsStr.split(",").map((x) => x.trim())
+  tags = _.filter(tags, (t) => t.length > 0)
+  tags = _.uniq(tags)
+  tags = tags.map((t) => t.replaceAll(" ", "_"))
+  return tags
+}
+
+function parse_tags_underscores(tagsStr) {
+  let tags = tagsStr.split(" ").map((x) => x.trim())
+  tags = _.filter(tags, (t) => t.length > 0)
+  tags = _.uniq(tags)
+  return tags
 }
 
 function parseSearchTags(query) {
-  query = query.trim()
-
-  let searchTags = query.split(",").map((x) => x.trim())
-  searchTags = _.filter(searchTags, (t) => t.length > 0)
+  let searchTags = parse_tags_underscores(query)
 
   let positive = []
   let negative = []
@@ -318,7 +331,7 @@ function viewTagEditor(image, ignoredTags, tagCounts, dispatch) {
                 ?
               </a>
               <div className="tag-info">
-                <span className="tag-text">{tag}</span>
+                <span className="tag-text">{tag.replaceAll("_", " ")}</span>
                 <span className="tag-count">{tagCounts[tag]}</span>
               </div>
               <div className="tag-buttons">
@@ -368,7 +381,7 @@ function viewTagsBlacklistEditor(ignoredTags, tagCounts, dispatch) {
               <a className="wiki-link" href={danbooruWikiLinkForTag(tag)}>
                 ?
               </a>
-              <span className="tag-text">{tag}</span>
+              <span className="tag-text">{tag.replaceAll("_", " ")}</span>
               <span className="tag-count">{tagCounts[tag]}</span>
               <button
                 className="tag-button delete-tag-button"
