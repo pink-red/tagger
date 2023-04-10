@@ -520,12 +520,12 @@ function viewAutoTagButton(image, position, autoTagger, dispatch) {
 }
 
 function viewAutoTags(file, position, autoTagger, ignoredTags, dispatch) {
-  let autoTags = []
+  let visibleTags = []
   if (file.autoTags !== null) {
-    autoTags = file.autoTags
+    visibleTags = file.autoTags
+    visibleTags = _.difference(visibleTags, ignoredTags)
+    visibleTags = _.difference(visibleTags, file.tags)
   }
-  let visibleTags = _.difference(autoTags, ignoredTags)
-  visibleTags = _.difference(autoTags, file.tags)
 
   return <div className="column auto-tags-column">
     <span className="column-name">Auto tags</span>
