@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/tagger/static/css/main.8677e769.css",
+    "main.js": "/tagger/static/js/main.5fc600f5.js",
+    "static/media/onnxruntime_binding.node": "/tagger/static/media/onnxruntime_binding.51389bf580de2f6b6479.node",
+    "static/media/main.py": "/tagger/static/media/main.94ee710a04c4be430bb9.py",
+    "index.html": "/tagger/index.html",
+    "main.8677e769.css.map": "/tagger/static/css/main.8677e769.css.map",
+    "main.5fc600f5.js.map": "/tagger/static/js/main.5fc600f5.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.8677e769.css",
+    "static/js/main.5fc600f5.js"
+  ]
+}
