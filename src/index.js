@@ -493,7 +493,7 @@ function viewAutoTagButton(image, position, autoTagger, dispatch) {
         transition: "background 0.2s ease-in-out"
       }}
     >
-      Loading...
+      Loading model...
     </button>
   }
 
