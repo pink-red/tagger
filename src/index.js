@@ -934,17 +934,50 @@ function view(state, dispatch) {
           </>
         )}
       </div>
-      {allFiles.length > 0 && (
-        <>
-          {filteredFiles.length === 0 ? (
-            <div> Nothing found. </div>
-          ) : mode === "image" ? (
-            viewEditor(state, dispatch)
-          ) : (
-            viewGallery(filteredFiles, dispatch)
-          )}
-        </>
-      )}
+      {
+        (allFiles.length > 0) ? (
+          <>
+            {filteredFiles.length === 0 ? (
+              <div> Nothing found. </div>
+            ) : mode === "image" ? (
+              viewEditor(state, dispatch)
+            ) : (
+              viewGallery(filteredFiles, dispatch)
+            )}
+          </>
+        ) : (
+          <div className="instruction">
+            <p>
+              Click the button to import the images.
+            </p>
+            <p>
+              To also import the tags, use one of the following file naming schemes:
+              <ul>
+                <li>image.png</li>
+                <li>image.txt</li>
+                <li>another-image.jpg</li>
+                <li>another-image.txt</li>
+                <li>...</li>
+              </ul>
+              or
+              <ul>
+                <li>image.png</li>
+                <li>image.png.txt</li>
+                <li>example.webp</li>
+                <li>example.webp.txt</li>
+                <li>...</li>
+              </ul>
+            </p>
+            <p>
+              Note: this app runs entirely in the browser, including the
+              auto tagging feature. No data will be sent anywhere.
+            </p>
+            <p>
+              Source code: <a href="https://github.com/pink-red/tagger/">https://github.com/pink-red/tagger/</a>
+            </p>
+          </div>
+        )
+      }
     </div>
   )
 }
