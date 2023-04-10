@@ -23,6 +23,9 @@ if (typeof window === 'undefined') {
 
     self.addEventListener("fetch", function (event) {
         const r = event.request;
+        if (new URL(r.url).hostname !== new URL(window.location.href).hostname) {
+            return;
+        }
         if (r.cache === "only-if-cached" && r.mode !== "same-origin") {
             return;
         }
