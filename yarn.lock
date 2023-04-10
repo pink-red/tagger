@@ -2565,10 +2565,9 @@
     "@webassemblyjs/ast" "1.11.1"
     "@xtuc/long" "4.2.2"
 
-"@xenova/transformers@^1.3.5":
-  "integrity" "sha512-wpp/jvhqxBpYWGhWg0A4rWgxWzs9fm53/nelRXBimBlYQaFjPdsMie9TPnyAUvB4Eonq1nCijZ/rHvnjp/mcdQ=="
-  "resolved" "https://registry.npmjs.org/@xenova/transformers/-/transformers-1.3.5.tgz"
-  "version" "1.3.5"
+"@xenova/transformers@github:pink-red/transformers.js":
+  "resolved" "git+ssh://git@github.com/pink-red/transformers.js.git#84b4d5ca7ecc68ea9ee4a6eef596b7e32c7c15fb"
+  "version" "1.4.1"
   dependencies:
     "jimp" "^0.22.7"
     "onnxruntime-web" "^1.14.0"
@@ -7079,6 +7078,11 @@
   "integrity" "sha512-4hLB8Py4zZce5s4yd9XzopqwVv/yGNhV1Bl8NTmCq1763HeK2+EwVTv+leGeL13Dnh2wfbqowVPXCIO0z4taYw=="
   "resolved" "https://registry.npmjs.org/pako/-/pako-1.0.11.tgz"
   "version" "1.0.11"
+
+"papaparse@^5.4.1":
+  "integrity" "sha512-HipMsgJkZu8br23pW15uvo6sib6wne/4woLZPlFf3rpDyMe9ywEXUsuD7+6K9PRkJlVT51j/sCOYDKGGS3ZJrw=="
+  "resolved" "https://registry.npmjs.org/papaparse/-/papaparse-5.4.1.tgz"
+  "version" "5.4.1"
 
 "param-case@^3.0.4":
   "integrity" "sha512-RXlj7zCYokReqWpOPH9oYivUzLYZ5vAPIfEmCTNViosC78F8F0H9y7T7gG2M39ymgutxF5gcFEsyZQSph9Bp3A=="

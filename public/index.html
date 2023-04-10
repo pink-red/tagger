@@ -16,6 +16,17 @@
       Learn how to configure a non-root public URL by running `npm run build`.
     -->
   <title>Tagger</title>
+  <!--
+      FIXME: use npm and webpack for pyodide, but it seems to be pretty difficult.
+  -->
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.23.0/full/pyodide.js"></script>
+  <!--
+      Allow using multiple threads for model inference by enabling SharedArrayBuffer
+
+      See: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/SharedArrayBuffer
+      See: https://github.com/gzuidhof/coi-serviceworker
+  -->
+  <script src="coi-serviceworker.js"></script>
 </head>
 
 <body>

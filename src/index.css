@@ -53,6 +53,10 @@ body {
   width: 15em;
 }
 
+.auto-tags-column {
+  width: 15em;
+}
+
 .tag-input {
   background-color: #fff;
   border: 1px solid #ccc;
@@ -141,6 +145,11 @@ input[type="text"] {
   white-space: nowrap;
 }
 
+.button:disabled {
+  background: #aaaaaa;
+  cursor: not-allowed;
+}
+
 .tag-button {
   cursor: pointer;
   color: white;
@@ -153,6 +162,11 @@ input[type="text"] {
 }
 
 .delete-tag-button {
+  margin-right: 0.25rem;
+  background-color: #648191;
+}
+
+.add-tag-button {
   margin-right: 0.25rem;
   background-color: #648191;
 }

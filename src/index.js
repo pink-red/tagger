@@ -1,23 +1,144 @@
 import React, { useEffect } from "react"
-import ReactDOM from "react-dom"
+import * as ReactDOMClient from 'react-dom/client'
 import { program } from "raj-react"
 import { union } from "tagmeme"
 import _ from "underscore"
 import JSZip from "jszip"
 import { saveAs } from "file-saver"
-import { AutoTokenizer } from "@xenova/transformers"
+import { AutoTokenizer, getModelFile } from "@xenova/transformers"
+import * as ort from "onnxruntime-web"
+import Papa from "papaparse"
 
 import "./index.css"
+import mainPy from "./main.py"
 
 async function loadTokenizer(dispatch) {
   let tokenizer = await AutoTokenizer.from_pretrained(
     "https://huggingface.co/openai/clip-vit-large-patch14/resolve/main"
+//    "https://huggingface.co/runwayml/stable-diffusion-v1-5/resolve/main/tokenizer"
   )
   dispatch(Msg.SetTokenizer(tokenizer))
 }
 
+async function fileToBase64(file) {
+  return await new Promise((resolve) => {
+    let reader = new FileReader()
+    reader.onload = () => resolve(reader.result)
+    reader.readAsDataURL(file)
+  })
+}
+
+async function loadAutoTagger(dispatch) {
+  let pyodide = await window.loadPyodide()
+  // TODO: freeze versions
+  await pyodide.loadPackage(
+    [
+      "pillow",
+      "numpy",
+      "opencv-python",
+    ]
+  )
+
+  await pyodide.runPythonAsync(await (await fetch(mainPy)).text())
+  let pyfuncPreprocessImage = pyodide.globals.get("preprocess_image")
+
+  let modelBuffer = await getModelFile(
+    "https://huggingface.co/SmilingWolf/wd-v1-4-vit-tagger-v2/resolve/main",
+    "model.onnx",
+  )
+  let tagsBuffer = await getModelFile(
+    "https://huggingface.co/SmilingWolf/wd-v1-4-vit-tagger-v2/resolve/main",
+    "selected_tags.csv",
+  )
+  let tags = await new Promise((resolve, reject) => {
+    Papa.parse(
+      new Blob([tagsBuffer]),
+      {
+        complete: (x) => resolve(x.data),
+        error: reject,
+        header: true,
+        skipEmptyLines: true,
+      },
+    )
+  })
+
+  // Tell onnxruntime to execute models in a Web Worker
+  // (to use multiple CPU cores)
+  ort.env.wasm.proxy = true
+
+  let model = await ort.InferenceSession.create(
+    modelBuffer,
+    {
+        executionProviders: ["wasm"],
+        executionMode: "parallel",
+        graphOptimizationLevel: "all",
+    },
+  )
+
+  async function predict(file, position, dispatch) {
+    dispatch(
+      Msg.SetAutoTagger({
+        state: "busy",
+        predict: predict,
+      })
+    )
+
+    let fileB64 = await fileToBase64(file)
+    fileB64 = fileB64.split(",")[1]
+
+    // see: https://huggingface.co/spaces/SmilingWolf/wd-v1-4-tags/blob/b079c7b14601afefd3064c6711810217eb87f637/app.py
+
+    // TODO: get target image size from the model (un-hardcode 448)
+    let proxy = pyfuncPreprocessImage(fileB64, 448)
+    let buffer = proxy.getBuffer()
+    proxy.destroy()
+
+    // .slice(0) here copies the ArrayBuffer to allow passing it to a Web Worker
+    // (because we set ort.env.wasm.proxy = true)
+    // see also: https://github.com/pyodide/pyodide/issues/1961
+    let tensor = new ort.Tensor("float32", buffer.data.slice(0), buffer.shape)
+
+    let inputs = {}
+    inputs[model.inputNames[0]] = tensor
+    let probs = await model.run(inputs, [model.outputNames[0]])
+    probs = probs.predictions_sigmoid.data
+
+    let autoTags = _.zip(tags, probs).map(([tag, prob]) => {
+      return {
+        name: tag.name,
+        prob: prob,
+        category: tag.category,
+      }
+    })
+    autoTags = (
+        autoTags
+        .filter((x) => x.prob >= 0.35)
+        .filter((x) => x.category === "0")
+        .map((x) => x.name)
+    )
+    autoTags = sorted(autoTags)
+
+    dispatch(Msg.SetAutoTags({position, autoTags}))
+
+    dispatch(
+      Msg.SetAutoTagger({
+        state: "ready",
+        predict: predict,
+      })
+    )
+  }
+
+  dispatch(
+    Msg.SetAutoTagger({
+      state: "ready",
+      predict: predict,
+    })
+  )
+}
+
 const Msg = union([
   "SetTokenizer",
+  "SetAutoTagger",
   "UploadFiles",
   "Prev",
   "Next",
@@ -32,6 +153,7 @@ const Msg = union([
   "ToggleTagScripts",
   "UpdateTagInputValue",
   "UpdateSearchInputValue",
+  "SetAutoTags",
 ])
 
 function loopIndex(idx, arrayLength) {
@@ -43,7 +165,7 @@ function sorted(arr, key = _.identity) {
 }
 
 function escapeRegExp(string) {
-    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
 }
 
 function downloadTagsZip(images, ignoredTags) {
@@ -91,6 +213,7 @@ async function filesToTaggedImages(files) {
         image: file,
         tags: tags,
         url: url,
+        autoTags: null,
       })
     }
   }
@@ -140,7 +263,9 @@ function parseSearchTags(query) {
 }
 
 function tagsContainMatch(tags, pattern) {
-  let regex = new RegExp("^" + escapeRegExp(pattern).replaceAll("\\*", ".*") + "$")
+  let regex = new RegExp(
+    "^" + escapeRegExp(pattern).replaceAll("\\*", ".*") + "$"
+  )
   for (const t of tags) {
     if (t.match(regex)) {
       return true
@@ -150,7 +275,7 @@ function tagsContainMatch(tags, pattern) {
 }
 
 function filterFiles(query, files) {
-  let {positive, negative} = parseSearchTags(query)
+  let { positive, negative } = parseSearchTags(query)
 
   if (positive.length + negative.length > 0) {
     return _.filter(files, (f) => {
@@ -164,6 +289,7 @@ function filterFiles(query, files) {
   }
 }
 
+// FIXME: mutation
 function addTag(state, tag) {
   let file = state.filteredFiles[state.position]
 
@@ -197,12 +323,16 @@ function update(msg, state) {
     SetTokenizer(tokenizer) {
       return [{ ...state, tokenizer: tokenizer }]
     },
+    SetAutoTagger(autoTagger) {
+      return [{ ...state, autoTagger: autoTagger }]
+    },
     UploadFiles(files) {
       let { taggedImages, tagCounts } = files
       return [
         {
           ...makeInitialModel(),
           tokenizer: state.tokenizer,
+          autoTagger: state.autoTagger,
           mode: state.mode,
           allFiles: taggedImages,
           filteredFiles: taggedImages,
@@ -283,16 +413,22 @@ function update(msg, state) {
     ToggleTagScripts() {
       return [{ ...state, tagScriptsEnabled: !state.tagScriptsEnabled }]
     },
-    UpdateTagInputValue (value) {
+    UpdateTagInputValue(value) {
       return [{ ...state, tagInputValue: value }]
     },
-    UpdateSearchInputValue (value) {
+    UpdateSearchInputValue(value) {
       return [{ ...state, searchInputValue: value }]
+    },
+    SetAutoTags({position, autoTags}) {
+      let file = state.filteredFiles[position]
+      file = { ...file, autoTags: autoTags }
+      state.filteredFiles[position] = file  // FIXME: mutation
+      return [state]
     },
   })
 }
 
-function viewImageViewer(filteredFiles, position, dispatch) {
+function viewImageViewer(filteredFiles, position, autoTagger, dispatch) {
   return (
     <div className="image-column column">
       <div className="nav-buttons">
@@ -304,7 +440,8 @@ function viewImageViewer(filteredFiles, position, dispatch) {
           Prev
         </button>
         <div className="files-position">
-          [{position + 1} / {filteredFiles.length}]{" "}
+          [{position + 1} / {filteredFiles.length}]
+          {" "}
           {filteredFiles[position].image.name}
         </div>
         <button
@@ -322,7 +459,99 @@ function viewImageViewer(filteredFiles, position, dispatch) {
   )
 }
 
-function viewTagEditor(image, ignoredTags, tagCounts, tagInputValue, dispatch) {
+function viewTokens(tokenizer, tags) {
+  let numOfTokens = tokenizer(
+    tags.map((t) => t.replaceAll("_", " ")).join(", ")
+  )["input_ids"].size
+
+  return <span> Tokens: {numOfTokens} / 77 </span>
+}
+
+function viewAutoTagButton(image, position, autoTagger, dispatch) {
+  let text
+  let isEnabled
+  if (autoTagger.state === "loading") {
+    text = "Loading..."
+    isEnabled = false
+  } else if (autoTagger.state === "ready") {
+    text = "Predict"
+    isEnabled = true
+  } else if (autoTagger.state === "busy") {
+    text = "Predicting..."
+    isEnabled = false
+  }
+
+  return (
+    <button
+      className="button"
+      type="button"
+      disabled={!isEnabled}
+      onClick={() => autoTagger.predict(image, position, dispatch)}
+    >
+      {text}
+    </button>
+  )
+}
+
+function viewAutoTags(file, position, autoTagger, ignoredTags, dispatch) {
+  let autoTags = []
+  if (file.autoTags !== null) {
+    autoTags = file.autoTags
+  }
+  let visibleTags = _.difference(autoTags, ignoredTags)
+  visibleTags = _.difference(autoTags, file.tags)
+
+  return <div className="column auto-tags-column">
+    <span className="column-name">Auto tags</span>
+    {viewAutoTagButton(file.image, position, autoTagger, dispatch)}
+    <div className="tags-list">
+      {visibleTags.map((tag) => {
+        return (
+          <div className="tag" key={tag}>
+            <a
+              className="wiki-link"
+              href={danbooruWikiLinkForTag(tag)}
+              target="_blank"
+              rel="noreferrer"
+            >
+              ?
+            </a>
+            <div className="tag-info">
+              <span className="tag-text">{tag.replaceAll("_", " ")}</span>
+            </div>
+            <div className="tag-buttons">
+              <button
+                className="tag-button add-tag-button"
+                type="button"
+                onClick={() => dispatch(Msg.AddTag(tag))}
+              >
+                +
+              </button>
+              <button
+                className="tag-button add-global-button"
+                type="button"
+                onClick={() => dispatch(Msg.AddIgnoredTag(tag))}
+              >
+                &nbsp;
+              </button>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  </div>
+}
+
+function viewTagEditor(
+  image,
+  ignoredTags,
+  tagCounts,
+  tagInputValue,
+  tokenizer,
+  dispatch
+) {
+  let visibleTags = sorted(_.difference(image.tags, ignoredTags))
+
   return (
     <div className="column right-column">
       <span className="column-name">Tags</span>
@@ -338,13 +567,9 @@ function viewTagEditor(image, ignoredTags, tagCounts, tagInputValue, dispatch) {
           }
         }}
       />
-      {
-        // TODO
-        // <span>Tokens: {tokenizer(image.tags.join(", "))["input_ids"].size} / 75</span>
-      }
+      {viewTokens(tokenizer, visibleTags)}
       <div className="tags-list">
-        {" "}
-        {sorted(_.difference(image.tags, ignoredTags)).map((tag) => {
+        {visibleTags.map((tag) => {
           return (
             <div className="tag" key={tag}>
               <a
@@ -377,7 +602,7 @@ function viewTagEditor(image, ignoredTags, tagCounts, tagInputValue, dispatch) {
               </div>
             </div>
           )
-        })}{" "}
+        })}
       </div>
     </div>
   )
@@ -399,7 +624,6 @@ function viewTagsBlacklistEditor(ignoredTags, tagCounts, dispatch) {
         }}
       />
       <div className="tags-list">
-        {" "}
         {sorted(ignoredTags).map((tag) => {
           return (
             <div className="tag" key={tag}>
@@ -417,7 +641,7 @@ function viewTagsBlacklistEditor(ignoredTags, tagCounts, dispatch) {
               </button>
             </div>
           )
-        })}{" "}
+        })}
       </div>
     </div>
   )
@@ -491,18 +715,27 @@ function EditorShortcuts({ dispatch }) {
 }
 
 function viewEditor(state, dispatch) {
-  let { filteredFiles, position, tagCounts, ignoredTags, tagScriptsEnabled, tagInputValue } =
-    state
+  let {
+    filteredFiles,
+    position,
+    tagCounts,
+    ignoredTags,
+    tagScriptsEnabled,
+    tagInputValue,
+    tokenizer,
+    autoTagger,
+  } = state
 
   return (
     <>
       <div className="row">
-        {viewImageViewer(filteredFiles, position, dispatch)}
+        {viewImageViewer(filteredFiles, position, autoTagger, dispatch)}
         {viewTagEditor(
           filteredFiles[position],
           ignoredTags,
           tagCounts,
           tagInputValue,
+          tokenizer,
           dispatch
         )}
         {viewTagsBlacklistEditor(ignoredTags, tagCounts, dispatch)}
@@ -513,6 +746,13 @@ function viewEditor(state, dispatch) {
             {viewTagScript(0)}
             <TagScriptsShortcuts dispatch={dispatch} />
           </div>
+        )}
+        {viewAutoTags(
+          filteredFiles[position],
+          position,
+          autoTagger,
+          ignoredTags,
+          dispatch,
         )}
         {/* only enable shortcuts when the editor is being shown */}
         <EditorShortcuts dispatch={dispatch} />
@@ -631,7 +871,14 @@ function viewTagScriptsToggle(tagScriptsEnabled, dispatch) {
 }
 
 function view(state, dispatch) {
-  let { allFiles, filteredFiles, ignoredTags, mode, tagScriptsEnabled, searchInputValue } = state
+  let {
+    allFiles,
+    filteredFiles,
+    ignoredTags,
+    mode,
+    tagScriptsEnabled,
+    searchInputValue,
+  } = state
 
   return (
     <div className="container">
@@ -668,8 +915,12 @@ function makeInitialModel() {
     position: 0,
     tagCounts: {},
     tokenizer: null,
+    autoTagger: {
+        state: "loading",  // loading | ready | busy
+        predict: null,
+    },
     ignoredTags: [],
-    mode: "gallery",
+    mode: "gallery",  // gallery | image
     tagScriptsEnabled: false,
     tagInputValue: "",
     searchInputValue: "",
@@ -677,9 +928,15 @@ function makeInitialModel() {
 }
 
 const Program = program(React.Component, () => ({
-  init: [makeInitialModel(), loadTokenizer],
+  init: [
+    makeInitialModel(),
+    (dispatch) => {
+      loadTokenizer(dispatch)
+      loadAutoTagger(dispatch)
+    }
+  ],
   update,
   view,
 }))
 
-ReactDOM.render(<Program />, document.getElementById("app"))
+ReactDOMClient.createRoot(document.getElementById("app")).render(<Program />)
