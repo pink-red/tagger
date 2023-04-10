@@ -969,8 +969,10 @@ function view(state, dispatch) {
               </ul>
             </p>
             <p>
-              Note: this app runs entirely in the browser, including the
-              auto tagging feature. No data will be sent anywhere.
+              Note: this app runs entirely in the browser, including the auto tagging feature.
+            </p>
+            <p>
+              No need to install anything and no data will be sent anywhere.
             </p>
             <p>
               Source code: <a href="https://github.com/pink-red/tagger/">https://github.com/pink-red/tagger/</a>
