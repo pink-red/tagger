@@ -146,8 +146,8 @@ input[type="text"] {
 }
 
 .button:disabled {
-  background: #aaaaaa;
-  cursor: not-allowed;
+  background: #67707f;
+  cursor: default;
 }
 
 .tag-button {

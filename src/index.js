@@ -45,6 +45,17 @@ async function loadAutoTagger(dispatch) {
   let modelBuffer = await getModelFile(
     "https://huggingface.co/SmilingWolf/wd-v1-4-vit-tagger-v2/resolve/main",
     "model.onnx",
+    ((data) => {
+      if (data.status === "progress") {
+        dispatch(
+          Msg.SetAutoTagger({
+            state: "loading",
+            loadingProgress: data.progress,
+            predict: predict,
+          })
+        )
+      }
+    }),
   )
   let tagsBuffer = await getModelFile(
     "https://huggingface.co/SmilingWolf/wd-v1-4-vit-tagger-v2/resolve/main",
@@ -79,6 +90,7 @@ async function loadAutoTagger(dispatch) {
     dispatch(
       Msg.SetAutoTagger({
         state: "busy",
+        loadingProgress: null,
         predict: predict,
       })
     )
@@ -123,6 +135,7 @@ async function loadAutoTagger(dispatch) {
     dispatch(
       Msg.SetAutoTagger({
         state: "ready",
+        loadingProgress: null,
         predict: predict,
       })
     )
@@ -131,6 +144,7 @@ async function loadAutoTagger(dispatch) {
   dispatch(
     Msg.SetAutoTagger({
       state: "ready",
+      loadingProgress: null,
       predict: predict,
     })
   )
@@ -468,12 +482,24 @@ function viewTokens(tokenizer, tags) {
 }
 
 function viewAutoTagButton(image, position, autoTagger, dispatch) {
+  if (autoTagger.state === "loading") {
+    let prog = autoTagger.loadingProgress
+    return <button
+      className="button"
+      type="button"
+      disabled={true}
+      style={{
+        background: `linear-gradient(to right, #0d45a5, #0d45a5 ${prog}%, #67707f ${prog}%, #67707f)`,
+        transition: "background 0.2s ease-in-out"
+      }}
+    >
+      Loading...
+    </button>
+  }
+
   let text
   let isEnabled
-  if (autoTagger.state === "loading") {
-    text = "Loading..."
-    isEnabled = false
-  } else if (autoTagger.state === "ready") {
+  if (autoTagger.state === "ready") {
     text = "Predict"
     isEnabled = true
   } else if (autoTagger.state === "busy") {
@@ -917,6 +943,7 @@ function makeInitialModel() {
     tokenizer: null,
     autoTagger: {
         state: "loading",  // loading | ready | busy
+        loadingProgress: 0,
         predict: null,
     },
     ignoredTags: [],
