@@ -153,7 +153,7 @@ async function loadAutoTagger(dispatch) {
 const Msg = union([
   "SetTokenizer",
   "SetAutoTagger",
-  "UploadFiles",
+  "ImportFiles",
   "Prev",
   "Next",
   "AddTag",
@@ -182,7 +182,7 @@ function escapeRegExp(string) {
   return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
 }
 
-function downloadTagsZip(images, ignoredTags) {
+function exportTagsZip(images, ignoredTags) {
   let zip = new JSZip()
   for (const image of images) {
     let tags = sorted(image.tags)
@@ -355,7 +355,7 @@ function update(msg, state) {
     SetAutoTagger(autoTagger) {
       return [{ ...state, autoTagger: autoTagger }]
     },
-    UploadFiles(files) {
+    ImportFiles(files) {
       let { taggedImages, tagCounts } = files
       return [
         {
@@ -802,7 +802,7 @@ function viewEditor(state, dispatch) {
   )
 }
 
-function viewUploadFilesButton(currentFiles, dispatch) {
+function viewImportFilesButton(currentFiles, dispatch) {
   return (
     <>
       <input
@@ -813,7 +813,7 @@ function viewUploadFilesButton(currentFiles, dispatch) {
         onChange={(e) => {
           currentFiles.forEach((f) => URL.revokeObjectURL(f.url))
           filesToTaggedImages(Array.from(e.target.files)).then((files) =>
-            dispatch(Msg.UploadFiles(files))
+            dispatch(Msg.ImportFiles(files))
           )
         }}
       />
@@ -822,7 +822,7 @@ function viewUploadFilesButton(currentFiles, dispatch) {
         type="button"
         onClick={() => document.getElementById("file-input").click()}
       >
-        Upload files
+        Import files
       </button>
     </>
   )
@@ -845,14 +845,14 @@ function viewSearchField(searchInputValue, dispatch) {
   )
 }
 
-function viewDownloadTagsButton(allFiles, ignoredTags) {
+function viewExportTagsButton(allFiles, ignoredTags) {
   return (
     <button
       className="button"
       type="button"
-      onClick={() => downloadTagsZip(allFiles, ignoredTags)}
+      onClick={() => exportTagsZip(allFiles, ignoredTags)}
     >
-      Download tags
+      Export tags
     </button>
   )
 }
@@ -924,13 +924,13 @@ function view(state, dispatch) {
   return (
     <div className="container">
       <div className="file-input-row">
-        {viewUploadFilesButton(allFiles, dispatch)}
+        {viewImportFilesButton(allFiles, dispatch)}
         {allFiles.length > 0 && (
           <>
             {viewSearchField(searchInputValue, dispatch)}
             {viewModeToggle(mode, dispatch)}
             {viewTagScriptsToggle(tagScriptsEnabled, dispatch)}
-            {viewDownloadTagsButton(allFiles, ignoredTags)}
+            {viewExportTagsButton(allFiles, ignoredTags)}
           </>
         )}
       </div>
