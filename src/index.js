@@ -196,26 +196,41 @@ function downloadTagsZip(images, ignoredTags) {
     .then((content) => saveAs(content, "tags.zip"))
 }
 
+function splitFilenameExt(filename) {
+  let lastDot = filename.lastIndexOf(".")
+  let name = filename.slice(0, lastDot)
+  let ext = filename.slice(lastDot + 1)
+
+  return [name, ext]
+}
+
 async function filesToTaggedImages(files) {
+  let allowedExtensions = [
+    "gif",
+    "jpg",
+    "jpeg",
+    "png",
+    "wepb",
+  ]
+
   files = sorted(files, "name")
   const indexedFiles = _.indexBy(files, "name")
 
   let allTagsWithRepeats = []
   let taggedImages = []
   for (const file of files) {
-    if (!file.name.endsWith(".txt")) {
+    let [filenameNoExt, ext] = splitFilenameExt(file.name)
+
+    if (allowedExtensions.includes(ext)) {
       let tagStr
-      try {
+      if (indexedFiles.hasOwnProperty(file.name + ".txt")) {
         tagStr = await indexedFiles[file.name + ".txt"].text()
-      } catch (e) {
-        // happens when there's only an image, but no tag file
-        if (e instanceof TypeError) {
-          // TODO: show warning or create an empty list of tags?
-          continue
-        } else {
-          throw e
-        }
+      } else if (indexedFiles.hasOwnProperty(filenameNoExt + ".txt")) {
+        tagStr = await indexedFiles[filenameNoExt + ".txt"].text()
+      } else {
+        tagStr = ""
       }
+
       const tags = parse_tags_comma_separated(tagStr)
       for (const tag of tags) {
         allTagsWithRepeats.push(tag)
